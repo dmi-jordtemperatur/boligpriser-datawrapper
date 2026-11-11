@@ -1,0 +1,39 @@
+
+name: Opdater boligpriser
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 8 15 * *"
+
+permissions:
+  contents: write
+
+jobs:
+  opdater:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Hent projektet
+        uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installer requests
+        run: pip install requests
+
+      - name: Hent boligpriser
+        run: python hent_boligpriser.py
+
+      - name: Gem opdaterede data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/
+          if ! git diff --cached --quiet; then
+            git commit -m "Opdater boligpriser"
+            git push
+          fi
