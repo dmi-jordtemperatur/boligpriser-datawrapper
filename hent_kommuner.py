@@ -48,7 +48,7 @@ session = requests.Session()
 rows = []
 fejl = []
 
-for kommune in KOMMUNER:
+for kommune in ["København"]:
     payload = [
         {
             "addressType": api_type,
