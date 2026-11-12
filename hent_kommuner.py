@@ -129,7 +129,13 @@ for kommune in KOMMUNER:
             if gyldige:
                 seneste = max(gyldige, key=lambda r: r["from"])
                 pris = seneste["value"]
-                maaned = seneste["from"][:7]
+                maanedsnavne = [
+                    "Januar", "Februar", "Marts", "April",
+                    "Maj", "Juni", "Juli", "August",
+                    "September", "Oktober", "November", "December"
+                ]
+                aar, maanedstal, _ = seneste["from"].split("-")
+                maaned = f"{maanedsnavne[int(maanedstal) - 1]} {aar[-2:]}"
 
                 previous_year = seneste.get("previousYear") or {}
                 difference = previous_year.get("difference") or {}
