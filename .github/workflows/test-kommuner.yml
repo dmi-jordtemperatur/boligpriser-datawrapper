@@ -26,9 +26,10 @@ jobs:
       - name: Hent kommunedata
         run: python hent_kommuner.py
 
-      - name: Vis resultat
+      - name: Kontroller resultat
         run: |
-          echo "Antal linjer:"
-          wc -l data/boligpriser_kommuner.csv
-          echo "Data:"
-          cat data/boligpriser_kommuner.csv
+          echo "Antal datarækker:"
+          python -c "import csv; print(sum(1 for _ in csv.DictReader(open('data/boligpriser_kommuner.csv'))))"
+          echo "Antal rækker uden pris:"
+          python -c "import csv; print(sum(not r['Kr. pr. m²'] for r in csv.DictReader(open('data/boligpriser_kommuner.csv'))))"
+
