@@ -74,7 +74,7 @@ for kommune in ["København"]:
         )
         response.raise_for_status()
         data = response.json()
-print("API-SVAR:", repr(data)[:3000], flush=True)
+        print("API-SVAR:", repr(data)[:3000], flush=True)
         
         if not isinstance(data, list) or len(data) != 3:
             raise ValueError("Uventet API-svar")
