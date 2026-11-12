@@ -160,7 +160,7 @@ if fejl:
         + "\n".join(fejl)
     )
 
-if len(rows) != len(KOMMUNER) * len(BOLIGTYPER):
+if len(rows) != 3:
     raise RuntimeError("Der mangler rækker i resultatet")
 
 Path("data").mkdir(exist_ok=True)
