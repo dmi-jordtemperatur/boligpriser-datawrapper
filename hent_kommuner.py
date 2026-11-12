@@ -76,8 +76,27 @@ for kommune in ["København"]:
         data = response.json()
         print("API-SVAR:", repr(data)[:3000], flush=True)
         
-        if not isinstance(data, list) or len(data) != 3:
+        
+        if not isinstance(data, list):
             raise ValueError("Uventet API-svar")
+
+        # API'et kan returnere én samlet liste eller
+        # en liste med underlister.
+        if len(data) == 1 and isinstance(data[0], list):
+            data = data[0]
+
+        if data and isinstance(data[0], dict):
+            data = [
+                [
+                    r for r in data
+                    if r.get("addressType") == api_type
+                ]
+                for api_type in BOLIGTYPER
+            ]
+
+        if len(data) != len(BOLIGTYPER):
+            raise ValueError("Uventet API-svar")
+
 
         for api_type, records in zip(BOLIGTYPER, data):
             pris = ""
