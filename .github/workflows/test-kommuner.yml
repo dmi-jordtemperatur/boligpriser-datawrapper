@@ -1,0 +1,34 @@
+
+name: Test boligpriser for kommuner
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Hent projektet
+        uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installer requests
+        run: pip install requests
+
+      - name: Hent kommunedata
+        run: python hent_kommuner.py
+
+      - name: Vis resultat
+        run: |
+          echo "Antal linjer:"
+          wc -l data/boligpriser_kommuner.csv
+          echo "Data:"
+          cat data/boligpriser_kommuner.csv
