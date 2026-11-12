@@ -74,7 +74,19 @@ for kommune in ["København"]:
         )
         response.raise_for_status()
         data = response.json()
-        print("API-SVAR:", repr(data)[:3000], flush=True)
+        print("Antal svar:", len(data), flush=True)
+        for i, svar in enumerate(data):
+            print(
+                "Svar", i,
+                "type:", type(svar).__name__,
+                "antal:", len(svar) if isinstance(svar, list) else "-",
+                "boligtype:",
+                svar[0].get("addressType")
+                if isinstance(svar, list) and svar
+                and isinstance(svar[0], dict)
+                else "-",
+                flush=True,
+            )
         
         
         if not isinstance(data, list):
