@@ -115,7 +115,9 @@ for kommune in ["København"]:
             maaned = ""
             udvikling = ""
 
-            if not isinstance(records, list):
+            if records is None:
+                records = []
+            elif not isinstance(records, list):
                 raise ValueError("Uventet datastruktur")
 
             gyldige = [
@@ -129,17 +131,12 @@ for kommune in ["København"]:
                 pris = seneste["value"]
                 maaned = seneste["from"][:7]
 
-                forrige_aar = (
-                    seneste.get("previousYear") or {}
-                ).get("value")
+                previous_year = seneste.get("previousYear") or {}
+                difference = previous_year.get("difference") or {}
+                procent = difference.get("percentage")
 
-                if (
-                    isinstance(forrige_aar, (int, float))
-                    and forrige_aar > 0
-                ):
-                    udvikling = round(
-                        (pris / forrige_aar - 1) * 100, 1
-                    )
+                if isinstance(procent, (int, float)):
+                    udvikling = procent
 
             rows.append([
                 kommune,
