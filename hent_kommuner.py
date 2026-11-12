@@ -48,7 +48,7 @@ session = requests.Session()
 rows = []
 fejl = []
 
-for kommune in ["København"]:
+for kommune in KOMMUNER:
     payload = [
         {
             "addressType": api_type,
@@ -160,7 +160,7 @@ if fejl:
         + "\n".join(fejl)
     )
 
-if len(rows) != 3:
+if len(rows) != len(KOMMUNER) * len(BOLIGTYPER):
     raise RuntimeError("Der mangler rækker i resultatet")
 
 Path("data").mkdir(exist_ok=True)
