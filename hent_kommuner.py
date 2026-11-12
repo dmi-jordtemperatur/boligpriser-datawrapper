@@ -1,5 +1,6 @@
 
 import csv
+import time
 from datetime import date
 from pathlib import Path
 
@@ -7,79 +8,131 @@ import requests
 
 URL = "https://api.boligsiden.dk/cases/stats"
 
-# Vi tester først tre kommuner og alle boligtyper.
-kommuner = ["København", "Aarhus", "Odense"]
+KOMMUNER = [
+    "Albertslund", "Allerød", "Assens", "Ballerup",
+    "Billund", "Bornholm", "Brøndby", "Brønderslev",
+    "Dragør", "Egedal", "Esbjerg", "Fanø",
+    "Favrskov", "Faxe", "Fredensborg", "Fredericia",
+    "Frederiksberg", "Frederikshavn", "Frederikssund",
+    "Furesø", "Faaborg-Midtfyn", "Gentofte",
+    "Gladsaxe", "Glostrup", "Greve", "Gribskov",
+    "Guldborgsund", "Haderslev", "Halsnæs", "Hedensted",
+    "Helsingør", "Herlev", "Herning", "Hillerød",
+    "Hjørring", "Holbæk", "Holstebro", "Horsens",
+    "Hvidovre", "Høje-Taastrup", "Hørsholm", "Ikast-Brande",
+    "Ishøj", "Jammerbugt", "Kalundborg", "Kerteminde",
+    "Kolding", "København", "Køge", "Langeland",
+    "Lejre", "Lemvig", "Lolland", "Lyngby-Taarbæk",
+    "Læsø", "Mariagerfjord", "Middelfart", "Morsø",
+    "Norddjurs", "Nordfyns", "Nyborg", "Næstved",
+    "Odder", "Odense", "Odsherred", "Randers",
+    "Rebild", "Ringkøbing-Skjern", "Ringsted",
+    "Roskilde", "Rudersdal", "Rødovre", "Samsø",
+    "Silkeborg", "Skanderborg", "Skive", "Slagelse",
+    "Solrød", "Sorø", "Stevns", "Struer",
+    "Svendborg", "Syddjurs", "Sønderborg", "Thisted",
+    "Tønder", "Tårnby", "Vallensbæk", "Varde",
+    "Vejen", "Vejle", "Vesthimmerlands", "Viborg",
+    "Vordingborg", "Ærø", "Aabenraa", "Aalborg",
+    "Aarhus"
+]
 
-boligtyper = {
+BOLIGTYPER = {
     "villa and terraced house": "Villa/rækkehus",
     "condo": "Ejerlejlighed",
     "holiday house": "Fritidsbolig",
 }
 
-payload = []
+session = requests.Session()
 
-for kommune in kommuner:
-    for api_type in boligtyper:
-        payload.append({
+rows = []
+fejl = []
+
+for kommune in KOMMUNER:
+    payload = [
+        {
             "addressType": api_type,
             "from": "2025-01-01",
             "to": date.today().isoformat(),
             "locationName": kommune,
             "locationType": "municipality",
             "type": "sold_per_area_price",
-        })
-
-response = requests.post(
-    URL,
-    json=payload,
-    headers={
-        "Accept": "application/json",
-        "Origin": "https://www.boligsiden.dk",
-        "Referer": "https://www.boligsiden.dk/",
-    },
-    timeout=60,
-)
-response.raise_for_status()
-
-data = response.json()
-
-if not isinstance(data, list) or len(data) != len(payload):
-    raise ValueError("Uventet API-svar")
-
-rows = []
-
-for request_item, records in zip(payload, data):
-    if not isinstance(records, list) or not records:
-        continue
-
-    priser = [
-        r for r in records
-        if r.get("type") == "sold_per_area_price"
-        and isinstance(r.get("value"), (int, float))
+        }
+        for api_type in BOLIGTYPER
     ]
 
-    if not priser:
-        continue
-
-    seneste = max(priser, key=lambda r: r["from"])
-    forrige_aar = seneste.get("previousYear", {}).get("value")
-
-    udvikling = ""
-    if isinstance(forrige_aar, (int, float)) and forrige_aar:
-        udvikling = round(
-            (seneste["value"] / forrige_aar - 1) * 100, 1
+    try:
+        response = session.post(
+            URL,
+            json=payload,
+            headers={
+                "Accept": "application/json",
+                "Origin": "https://www.boligsiden.dk",
+                "Referer": "https://www.boligsiden.dk/",
+            },
+            timeout=60,
         )
+        response.raise_for_status()
+        data = response.json()
 
-    rows.append([
-        request_item["locationName"],
-        boligtyper[request_item["addressType"]],
-        seneste["from"][:7],
-        seneste["value"],
-        udvikling,
-    ])
+        if not isinstance(data, list) or len(data) != 3:
+            raise ValueError("Uventet API-svar")
 
-if not rows:
-    raise ValueError("Ingen boligpriser modtaget")
+        for api_type, records in zip(BOLIGTYPER, data):
+            pris = ""
+            maaned = ""
+            udvikling = ""
+
+            if not isinstance(records, list):
+                raise ValueError("Uventet datastruktur")
+
+            gyldige = [
+                r for r in records
+                if r.get("type") == "sold_per_area_price"
+                and isinstance(r.get("value"), (int, float))
+            ]
+
+            if gyldige:
+                seneste = max(gyldige, key=lambda r: r["from"])
+                pris = seneste["value"]
+                maaned = seneste["from"][:7]
+
+                forrige_aar = (
+                    seneste.get("previousYear") or {}
+                ).get("value")
+
+                if (
+                    isinstance(forrige_aar, (int, float))
+                    and forrige_aar > 0
+                ):
+                    udvikling = round(
+                        (pris / forrige_aar - 1) * 100, 1
+                    )
+
+            rows.append([
+                kommune,
+                BOLIGTYPER[api_type],
+                maaned,
+                pris,
+                udvikling,
+            ])
+
+        print(f"Behandlet: {kommune}", flush=True)
+
+    except (requests.RequestException, ValueError) as exc:
+        fejl.append(f"{kommune}: {exc}")
+        print(f"FEJL: {kommune}: {exc}", flush=True)
+
+    time.sleep(1)
+
+if fejl:
+    raise RuntimeError(
+        "Datahentning fejlede for kommuner:\n"
+        + "\n".join(fejl)
+    )
+
+if len(rows) != len(KOMMUNER) * len(BOLIGTYPER):
+    raise RuntimeError("Der mangler rækker i resultatet")
 
 Path("data").mkdir(exist_ok=True)
 
@@ -99,4 +152,8 @@ with open(
     ])
     writer.writerows(rows)
 
-print(f"Gemt {len(rows)} rækker")
+print(f"Færdig: {len(rows)} rækker")
+print(
+    "Rækker uden pris:",
+    sum(1 for row in rows if row[3] == "")
+)
